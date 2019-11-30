@@ -5,3 +5,4 @@ authors = ["Athir Saleem <noc7c9@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+rustyline = "5.0.4"
