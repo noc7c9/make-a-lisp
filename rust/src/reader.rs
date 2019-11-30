@@ -35,36 +35,29 @@ fn read_form(tokens: &mut TokenIter) -> Result<AST, Error> {
         // Reader macros
         Some(&"'") => {
             tokens.next();
-            AST::List(vec![AST::Symbol("quote".into()), read_form(tokens)?])
+            AST::list(vec![AST::symbol("quote"), read_form(tokens)?])
         }
         Some(&"`") => {
             tokens.next();
-            AST::List(vec![AST::Symbol("quasiquote".into()), read_form(tokens)?])
+            AST::list(vec![AST::symbol("quasiquote"), read_form(tokens)?])
         }
         Some(&"~") => {
             tokens.next();
-            AST::List(vec![AST::Symbol("unquote".into()), read_form(tokens)?])
+            AST::list(vec![AST::symbol("unquote"), read_form(tokens)?])
         }
         Some(&"@") => {
             tokens.next();
-            AST::List(vec![AST::Symbol("deref".into()), read_form(tokens)?])
+            AST::list(vec![AST::symbol("deref"), read_form(tokens)?])
         }
         Some(&"~@") => {
             tokens.next();
-            AST::List(vec![
-                AST::Symbol("splice-unquote".into()),
-                read_form(tokens)?,
-            ])
+            AST::list(vec![AST::symbol("splice-unquote"), read_form(tokens)?])
         }
         Some(&"^") => {
             tokens.next();
             let first_form = read_form(tokens)?;
             let second_form = read_form(tokens)?;
-            AST::List(vec![
-                AST::Symbol("with-meta".into()),
-                second_form,
-                first_form,
-            ])
+            AST::list(vec![AST::symbol("with-meta"), second_form, first_form])
         }
 
         _ => read_atom(tokens)?,
@@ -89,18 +82,18 @@ fn read_container(tokens: &mut TokenIter, container_type: ast::Container) -> Res
     }
 
     Ok(match container_type {
-        ast::Container::List => AST::List(values),
-        ast::Container::Vector => AST::Vector(values),
+        ast::Container::List => AST::list(values),
+        ast::Container::Vector => AST::vector(values),
         ast::Container::HashMap => {
-            let mut hash_map = HashMap::with_capacity(values.len() / 2);
+            let mut hashmap = HashMap::with_capacity(values.len() / 2);
 
             let mut pairs = values.into_iter().peekable();
             while let Some(key) = pairs.next() {
                 let value = pairs.next().ok_or(Error::MissingHashMapValue)?;
-                hash_map.insert(key.try_into()?, value);
+                hashmap.insert(key.try_into()?, value);
             }
 
-            AST::HashMap(hash_map)
+            AST::hashmap(hashmap)
         }
     })
 }
@@ -110,7 +103,7 @@ fn read_atom(tokens: &mut TokenIter) -> Result<AST, Error> {
 
     // Read a number
     let atom = if let Ok(num) = token.parse::<f64>() {
-        AST::Number(num)
+        AST::number(num)
     }
     // Read a string
     else if token.starts_with('"') {
@@ -118,11 +111,11 @@ fn read_atom(tokens: &mut TokenIter) -> Result<AST, Error> {
     }
     // Read a keyword
     else if token.starts_with(':') {
-        AST::Keyword(token[1..].into())
+        AST::keyword(&token[1..])
     }
     // Read a symbol
     else {
-        AST::Symbol(token.into())
+        AST::symbol(token)
     };
 
     Ok(atom)
@@ -146,7 +139,7 @@ fn read_string(token: &str) -> Result<AST, Error> {
         }
     }
 
-    Ok(AST::String(string))
+    Ok(AST::string(string))
 }
 
 fn tokenize(string: &str) -> TokenIter<'_> {

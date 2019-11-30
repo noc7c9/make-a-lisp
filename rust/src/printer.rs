@@ -6,13 +6,13 @@ pub fn print(exp: AST) -> String {
     match exp {
         AST::List(value) => {
             string.push('(');
-            let value: Vec<_> = value.into_iter().map(print).collect();
+            let value: Vec<_> = value.0.into_iter().map(print).collect();
             string.push_str(&value.join(" "));
             string.push(')');
         }
         AST::Vector(value) => {
             string.push('[');
-            let value: Vec<_> = value.into_iter().map(print).collect();
+            let value: Vec<_> = value.0.into_iter().map(print).collect();
             string.push_str(&value.join(" "));
             string.push(']');
         }
@@ -23,32 +23,33 @@ pub fn print(exp: AST) -> String {
         }
         AST::Keyword(value) => {
             string.push(':');
-            string.push_str(&value);
+            string.push_str(&value.0);
         }
-        AST::Symbol(value) => string.push_str(&value),
+        AST::Symbol(value) => string.push_str(&value.0),
         AST::String(value) => {
             string.push('"');
             string.push_str(&print_string(value));
             string.push('"');
         }
-        AST::Bool(value) => string.push_str(&value.to_string()),
-        AST::Number(value) => string.push_str(&value.to_string()),
-        AST::Nil => string.push_str("nil"),
+        AST::Boolean(value) => string.push_str(&value.0.to_string()),
+        AST::Number(value) => string.push_str(&value.0.to_string()),
+        AST::Nil(_) => string.push_str("nil"),
     }
     string
 }
 
-fn print_hashmap(hash_map: HashMap<ast::Hashable, AST>) -> String {
-    let pairs: Vec<_> = hash_map
+fn print_hashmap(hashmap: ast::HashMap) -> String {
+    let pairs: Vec<_> = hashmap
+        .0
         .into_iter()
         .map(|(key, value)| format!("{} {}", print(key.into()), print(value)))
         .collect();
     pairs.join(" ")
 }
 
-fn print_string(string: String) -> String {
+fn print_string(string: ast::String) -> String {
     let mut result = String::new();
-    for ch in string.chars() {
+    for ch in string.0.chars() {
         match ch {
             '"' | '\\' => {
                 result.push('\\');
