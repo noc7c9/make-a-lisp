@@ -47,7 +47,7 @@ all help:
 # Command line settings
 #
 
-MAL_IMPL = js
+MAL_IMPL = rust
 
 # cbm or qbasic
 basic_MODE = cbm
@@ -65,6 +65,8 @@ python_MODE = python
 scheme_MODE = chibi
 # wasmtime wasmer lucet wax  node warpy  wace_libc
 wasm_MODE = wasmtime
+# release debug
+rust_MODE = release
 
 # Path to loccount for counting LOC stats
 LOCCOUNT = loccount
@@ -89,7 +91,7 @@ DOCKERIZE =
 # Implementation specific settings
 #
 
-IMPLS = mal
+IMPLS = mal rust
 
 EXTENSION = .mal
 
@@ -243,7 +245,7 @@ racket_STEP_TO_PROG =  racket/$($(1)).rkt
 rexx_STEP_TO_PROG =    rexx/$($(1)).rexxpp
 rpython_STEP_TO_PROG = rpython/$($(1))
 ruby_STEP_TO_PROG =    ruby/$($(1)).rb
-rust_STEP_TO_PROG =    rust/$($(1))
+rust_STEP_TO_PROG =    rust/target/$(rust_MODE)/$($(1))
 scala_STEP_TO_PROG =   scala/target/scala-2.11/classes/$($(1)).class
 scheme_STEP_TO_PROG =  $(scheme_STEP_TO_PROG_$(scheme_MODE))
 skew_STEP_TO_PROG =    skew/$($(1)).js

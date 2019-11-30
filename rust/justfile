@@ -1,0 +1,25 @@
+_list:
+    @just --list
+
+watch JUST_CMD='check' +ARGS='':
+    watchexec --watch src --restart --clear -- just {{JUST_CMD}} {{ARGS}}
+
+check +ARGS='':
+    cargo check {{ARGS}}
+
+unit-test +ARGS='':
+    cargo test {{ARGS}}
+
+run STEP='A':
+    just _actual repl {{STEP}}
+
+test STEP='A':
+    just _actual test {{STEP}}
+
+regress-test STEP='A':
+    just _actual repl {{STEP}} REGRESS=1
+
+_actual ACTION STEP +OPTS='':
+    #!/usr/bin/env sh
+    cd ..
+    make {{OPTS}} "{{ACTION}}^rust^step{{STEP}}"
