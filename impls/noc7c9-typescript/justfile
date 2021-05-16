@@ -1,0 +1,13 @@
+run STEP:
+    make build/step{{STEP}}*
+    node build/step{{STEP}}*
+
+test-input STEP:
+    make build/step{{STEP}}*
+    node build/step{{STEP}}* < test-input
+
+test STEP:
+    cd ../.. && make test^noc7c9-typescript^step{{STEP}} | rg -e "^" -e FAIL
+
+watch +CMD:
+    watchexec -w . -r "cls; just {{CMD}}"
