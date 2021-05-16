@@ -1,5 +1,5 @@
 import logger from './logger';
-import { MalType } from './types';
+import { MalType, MalMap } from './types';
 
 type Token = string;
 
@@ -9,7 +9,7 @@ type Reader = {
 };
 
 export function read_str(input: string): MalType | null {
-    logger('read_str("%s")', input);
+    // logger('read_str("%s")', input);
     const tokens = tokenize(input);
     let pos = 0;
     const reader = {
@@ -21,11 +21,13 @@ export function read_str(input: string): MalType | null {
         return null;
     }
 
-    return read_form(reader);
+    const result = read_form(reader);
+    logger('read_str("%s") // => %s', input, result);
+    return result;
 }
 
 function tokenize(input: string): Token[] {
-    logger('tokenize("%s")', input);
+    // logger('tokenize("%s")', input);
     const re = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/g;
 
     const tokens = [];
@@ -40,12 +42,12 @@ function tokenize(input: string): Token[] {
         tokens.push(result[1]);
     }
 
-    logger('tokenize("%s") // => %s', input, { tokens });
+    logger('tokenize("%s") // => %s', input, tokens);
     return tokens;
 }
 
 function read_form(reader: Reader): MalType {
-    logger('read_form', reader.peek());
+    // logger('read_form', reader.peek());
     switch (reader.peek()) {
         case null:
             throw new Error('Hit EOF, unable to read form');
@@ -78,7 +80,22 @@ function read_list(
         }
         list.push(read_form(reader));
     }
-    return { type, value: list };
+
+    if (type === 'list' || type === 'vec') {
+        return { type, value: list };
+    }
+
+    const map: MalMap['value'] = [];
+    for (let i = 0; i < list.length; i += 2) {
+        const key = list[i];
+        const val = list[i + 1];
+        if (key.type === 'str' || key.type === 'sym') {
+            map.push([key, val]);
+        } else {
+            throw new Error(`Hit non-str/sym map key \`${key.type}\``);
+        }
+    }
+    return { type, value: map };
 }
 
 function read_atom(reader: Reader): MalType {
@@ -95,7 +112,7 @@ function read_atom(reader: Reader): MalType {
         return { type: 'bool', value: token === 'true' };
     }
 
-    if (/^\d+$/.test(token)) {
+    if (/^(-|\+)?\d+$/.test(token)) {
         return { type: 'int', value: parseInt(token, 10) };
     }
 
