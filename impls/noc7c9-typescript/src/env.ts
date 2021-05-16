@@ -1,5 +1,6 @@
 import logger from './logger';
-import { MalType, MalSym } from './types';
+import type { MalType, MalSym } from './types';
+import * as t from './types';
 
 export type Env = {
     outer: Env | null;
@@ -10,7 +11,11 @@ export type Env = {
     get(sym: MalSym): MalType;
 };
 
-export function init(outer: Env['outer']): Env {
+export function init(
+    outer: Env['outer'],
+    binds: MalSym[] = [],
+    exprs: MalType[] = [],
+): Env {
     const data: Env['data'] = {};
 
     const set: Env['set'] = (sym, val) => {
@@ -44,6 +49,14 @@ export function init(outer: Env['outer']): Env {
         }
         return result;
     };
+
+    for (let i = 0; i < binds.length; i += 1) {
+        if (binds[i].value === '&') {
+            set(binds[i + 1], t.list(...exprs.slice(i)));
+            break;
+        }
+        set(binds[i], exprs[i]);
+    }
 
     return {
         outer,

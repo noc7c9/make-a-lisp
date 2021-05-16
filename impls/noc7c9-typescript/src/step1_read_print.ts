@@ -12,7 +12,7 @@ function eval_(ast: MalType): MalType {
 }
 
 function print(ast: MalType): string {
-    return printer.print_str(ast);
+    return printer.print_str(ast, true);
 }
 
 (async function main() {

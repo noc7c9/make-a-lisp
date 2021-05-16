@@ -89,10 +89,10 @@ function read_list(
     for (let i = 0; i < list.length; i += 2) {
         const key = list[i];
         const val = list[i + 1];
-        if (key.type === 'str' || key.type === 'sym') {
+        if (key.type === 'str' || key.type === 'key') {
             map.push([key, val]);
         } else {
-            throw new Error(`Hit non-str/sym map key \`${key.type}\``);
+            throw new Error(`Hit non-string/keyword map key \`${key.type}\``);
         }
     }
     return { type, value: map };
@@ -114,6 +114,10 @@ function read_atom(reader: Reader): MalType {
 
     if (/^(-|\+)?\d+$/.test(token)) {
         return { type: 'int', value: parseInt(token, 10) };
+    }
+
+    if (token[0] === ':') {
+        return { type: 'key', value: token };
     }
 
     if (token[0] === '"') {

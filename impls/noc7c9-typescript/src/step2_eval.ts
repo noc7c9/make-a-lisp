@@ -58,7 +58,7 @@ function eval_(ast: MalType, env: Env): MalType {
 }
 
 function print(ast: MalType): string {
-    return printer.print_str(ast);
+    return printer.print_str(ast, true);
 }
 
 type Function = (a: number, b: number) => number;
