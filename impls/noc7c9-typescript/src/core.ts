@@ -1,5 +1,5 @@
 import fs from 'fs';
-import type { MalList, MalVec, FnReg } from './types';
+import type { MalType, MalList, MalVec, FnReg } from './types';
 import * as t from './types';
 import * as reader from './reader';
 import * as printer from './printer';
@@ -30,6 +30,15 @@ export const ns: Record<string, FnReg> = {
     '<': (a, b) => t.bool(t.toInt(a) < t.toInt(b)),
     '<=': (a, b) => t.bool(t.toInt(a) <= t.toInt(b)),
 
+    cons: (elem, list) => t.list(elem, ...t.isListOrVec(list).value),
+    concat: (...args) => {
+        const concatted: MalType[] = [];
+        for (let i = 0; i < args.length; i += 1) {
+            concatted.push(...t.isListOrVec(args[i]).value);
+        }
+        return t.list(...concatted);
+    },
+
     list: (...args) => t.list(...args),
     'list?': (arg) => t.bool(arg.type === 'list'),
     'empty?': (arg) => t.bool(t.isListOrVec(arg).value.length === 0),
@@ -39,6 +48,11 @@ export const ns: Record<string, FnReg> = {
         } catch (_) {
             return t.int(0);
         }
+    },
+
+    vec: (arg) => {
+        if (arg.type === 'vec') return arg;
+        return t.vec(...t.isList(arg).value);
     },
 
     'read-string': (arg) => reader.read_str(t.toStr(arg)) ?? t.nil(),

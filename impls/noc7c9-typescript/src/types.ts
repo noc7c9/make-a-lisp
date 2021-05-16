@@ -41,6 +41,7 @@ export const str = (value: string): MalStr => ({ type: 'str', value });
 export const nil = (): MalNil => ({ type: 'nil', value: null });
 export const atom = (value: MalType): MalAtom => ({ type: 'atom', value });
 export const list = (...value: MalType[]): MalList => ({ type: 'list', value });
+export const vec = (...value: MalType[]): MalVec => ({ type: 'vec', value });
 export const fn = (value: MalFn['value']): MalFn => ({ type: 'fn', value });
 
 export const isSym = (val: MalType): MalSym => {

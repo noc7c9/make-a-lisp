@@ -1,10 +1,10 @@
 run STEP:
-    make build/step{{STEP}}*
-    node build/step{{STEP}}*
+    make build/step{{STEP}}*.js
+    node build/step{{STEP}}*.js
 
 test-input STEP:
-    make build/step{{STEP}}*
-    node build/step{{STEP}}* < test-input
+    make build/step{{STEP}}*.js
+    node --enable-source-maps build/step{{STEP}}*.js < test-input
 
 test STEP:
     cd ../.. && make test^noc7c9-typescript^step{{STEP}} | rg -e "^" -e FAIL
