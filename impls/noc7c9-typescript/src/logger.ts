@@ -18,4 +18,6 @@ const inspectNonStr = (value: unknown) =>
 const inspect = (value: unknown) =>
     util.inspect(value, { depth: Infinity, colors: true });
 
-export default Object.assign(logger, { inspect });
+const { custom } = util.inspect;
+
+export default Object.assign(logger, { inspect, custom });

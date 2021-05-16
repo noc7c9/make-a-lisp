@@ -12,7 +12,7 @@ function eval_ast(ast: MalType, env: Env): MalType {
     switch (ast.type) {
         case 'sym': {
             if (ast.value in env) {
-                ast.resolved = env[ast.value];
+                (ast as any).resolved = env[ast.value];
                 return ast;
             }
             throw new Error(`Hit unknown symbol \`${ast.value}\``);
@@ -47,7 +47,7 @@ function eval_(ast: MalType, env: Env): MalType {
     const args = evaled.value
         .slice(1)
         .map((a) => ('value' in a ? a.value : null));
-    const result = (fn.resolved as any)(...args);
+    const result = (fn as any).resolved(...args);
     logger(
         `call %s(%s) => %s`,
         'value' in fn ? fn.value : 'nil',

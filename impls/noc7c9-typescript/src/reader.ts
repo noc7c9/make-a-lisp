@@ -105,7 +105,7 @@ function read_atom(reader: Reader): MalType {
     }
 
     if (token === 'nil') {
-        return { type: 'nil' };
+        return { type: 'nil', value: null };
     }
 
     if (token === 'true' || token === 'false') {

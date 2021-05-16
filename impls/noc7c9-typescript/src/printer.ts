@@ -1,6 +1,9 @@
+import logger from './logger';
 import { MalType } from './types';
 
 export function print_str(input: MalType): string {
+    logger('print_str(%s)', input);
+
     switch (input.type) {
         case 'nil':
             return 'nil';
@@ -18,5 +21,7 @@ export function print_str(input: MalType): string {
                 .join(' ')}}`;
         case 'vec':
             return `[${input.value.map(print_str).join(' ')}]`;
+        case 'fn':
+            throw new Error('Cannot print MalFn');
     }
 }
