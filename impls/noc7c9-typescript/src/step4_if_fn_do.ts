@@ -96,7 +96,7 @@ function eval_(ast: MalType, env: envM.Env): MalType {
             const args = evaled.value.slice(1);
             const stringfiedArgs = args.map(logger.inspect).join(', ');
             logger('calling %s(%s)', fn.value, stringfiedArgs);
-            const result = fn.value(...args);
+            const result = (fn.value as any)(...args);
             logger('called  %s(%s) => %s', fn.value, stringfiedArgs, result);
             return result;
         }

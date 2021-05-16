@@ -1,3 +1,5 @@
+import type { Env } from './env';
+
 export type MalType =
     | MalBool
     | MalInt
@@ -21,7 +23,9 @@ export type MalList = { type: 'list'; value: MalType[] };
 export type MalMap = { type: 'map'; value: [MalKey | MalStr, MalType][] };
 export type MalVec = { type: 'vec'; value: MalType[] };
 
-export type MalFn = { type: 'fn'; value: (...args: MalType[]) => MalType };
+export type FnReg = (...args: MalType[]) => MalType;
+export type FnTco = { ast: MalType; env: Env; params: MalList | MalVec };
+export type MalFn = { type: 'fn'; value: FnReg | FnTco };
 
 export const sym = (value: string): MalSym => ({ type: 'sym', value });
 export const bool = (value: boolean): MalBool => ({ type: 'bool', value });

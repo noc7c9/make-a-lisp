@@ -31,7 +31,7 @@ export function print_str(input: MalType, print_readably: boolean): string {
                 .map((v) => print_str(v, print_readably))
                 .join(' ')}]`;
         case 'fn':
-            if (input.value.name) {
+            if ('name' in input.value && input.value.name) {
                 return `#<function ${input.value.name}>`;
             }
             return `#<function>`;

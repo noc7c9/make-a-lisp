@@ -1,8 +1,8 @@
-import type { MalFn, MalList, MalVec } from './types';
+import type { MalList, MalVec, FnReg } from './types';
 import * as t from './types';
 import * as printer from './printer';
 
-export const ns: Record<string, MalFn['value']> = {
+export const ns: Record<string, FnReg> = {
     '+': (a, b) => t.int(t.isInt(a) + t.isInt(b)),
     '-': (a, b) => t.int(t.isInt(a) - t.isInt(b)),
     '*': (a, b) => t.int(t.isInt(a) * t.isInt(b)),
