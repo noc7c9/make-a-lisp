@@ -82,10 +82,10 @@ const repl_env = envM.init(null);
 const setFn = (name: string, fn: MalFn['value']) =>
     repl_env.set(t.sym(name), t.fn(fn));
 
-setFn('+', (a, b) => t.int(t.isInt(a) + t.isInt(b)));
-setFn('-', (a, b) => t.int(t.isInt(a) - t.isInt(b)));
-setFn('*', (a, b) => t.int(t.isInt(a) * t.isInt(b)));
-setFn('/', (a, b) => t.int(Math.floor(t.isInt(a) / t.isInt(b))));
+setFn('+', (a, b) => t.int(t.toInt(a) + t.toInt(b)));
+setFn('-', (a, b) => t.int(t.toInt(a) - t.toInt(b)));
+setFn('*', (a, b) => t.int(t.toInt(a) * t.toInt(b)));
+setFn('/', (a, b) => t.int(Math.floor(t.toInt(a) / t.toInt(b))));
 
 (async function main() {
     const rl = readline.initialize('user> ');

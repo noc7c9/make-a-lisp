@@ -151,7 +151,7 @@ function read_wrapped(reader: Reader, wrapper: string): MalType {
 
 function parse_str(token: string): string {
     try {
-        return JSON.parse(token);
+        return JSON.parse(token.replace(/\n/, '\\n'));
     } catch (_) {
         throw new Error('Hit EOF, unexpected end of string');
     }

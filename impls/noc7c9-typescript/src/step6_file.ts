@@ -107,17 +107,10 @@ function eval_(ast: MalType, env: envM.Env): MalType {
                     [logger.custom]: () =>
                         logger.inspect({ params, env: '..elided..', ast }),
                 });
-                // return t.fn((...args) => {
-                //     const binds = t
-                //         .isListOrVec(ast_.value[1])
-                //         .value.map(t.isSym);
-                //     const fn_env = envM.init(env, binds, args);
-                //     return eval_(ast_.value[2], fn_env);
-                // });
             }
             default: {
                 const evaled = eval_ast(ast, env) as MalList;
-                const fn = evaled.value[0] as MalFn;
+                const fn = t.isFn(evaled.value[0]);
                 const args = evaled.value.slice(1);
                 const stringfiedArgs = args.map(logger.inspect).join(', ');
 
@@ -152,9 +145,6 @@ function print(ast: MalType): string {
 }
 
 function core_env(): envM.Env {
-    const DEBUG_bk = process.env.DEBUG;
-    process.env.DEBUG = undefined;
-
     const env = envM.init(null);
 
     Object.entries(core.ns).forEach(([name, fn]) =>
@@ -164,13 +154,44 @@ function core_env(): envM.Env {
 
     eval_(read('(def! not (fn* (a) (if a false true)))')!, env);
 
+    return env;
+}
+
+function build_env(): envM.Env {
+    const DEBUG_bk = process.env.DEBUG;
+    process.env.DEBUG = undefined;
+
+    const env = envM.init(core_env());
+
+    env.set(
+        t.sym('eval'),
+        t.fn((arg) => eval_(arg, env)),
+    );
+
+    const load_file =
+        '(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))';
+    eval_(read(load_file)!, env);
+
     process.env.DEBUG = DEBUG_bk;
 
     return env;
 }
 
 (async function main() {
-    const repl_env = envM.init(core_env());
+    const repl_env = build_env();
+
+    const args = process.argv.slice(2);
+
+    repl_env.set(t.sym('*ARGV*'), t.list(...args.slice(1).map(t.str)));
+
+    if (args.length > 0) {
+        const input = `(load-file "${args[0]}")`;
+        const read_line = read(input);
+        if (read_line == null) process.exit(0);
+        const eval_line = eval_(read_line, repl_env);
+        print(eval_line);
+        process.exit(0);
+    }
 
     const rl = readline.initialize('user> ');
     let line;

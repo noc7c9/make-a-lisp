@@ -14,6 +14,8 @@ export function print_str(input: MalType, print_readably: boolean): string {
             return `${input.value}`;
         case 'str':
             return print_readably ? JSON.stringify(input.value) : input.value;
+        case 'atom':
+            return `(atom ${print_str(input.value, print_readably)})`;
         case 'list':
             return `(${input.value
                 .map((v) => print_str(v, print_readably))
