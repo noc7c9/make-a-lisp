@@ -31,6 +31,8 @@ export type FnTco = {
     env: Env;
     params: MalList | MalVec;
     fn: FnReg;
+    is_macro: boolean;
+    name?: string;
 };
 export type MalFn = { type: 'fn'; value: FnReg | FnTco };
 

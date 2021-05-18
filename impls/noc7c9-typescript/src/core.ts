@@ -49,6 +49,24 @@ export const ns: Record<string, FnReg> = {
             return t.int(0);
         }
     },
+    nth: (arg, idx) => {
+        const values = t.isListOrVec(arg).value;
+        const i = t.toInt(idx);
+        if (i >= values.length) {
+            throw new Error('nth: index out of range');
+        }
+        return values[i];
+    },
+    first: (arg) => {
+        if (arg.type === 'nil') return t.nil();
+        const values = t.isListOrVec(arg).value;
+        if (values.length === 0) return t.nil();
+        return values[0];
+    },
+    rest: (arg) => {
+        if (arg.type === 'nil') return t.list();
+        return t.list(...t.isListOrVec(arg).value.slice(1));
+    },
 
     vec: (arg) => {
         if (arg.type === 'vec') return arg;

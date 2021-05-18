@@ -104,6 +104,7 @@ function eval_(ast: MalType, env: envM.Env): MalType {
                         const fn_env = envM.init(env, binds, args);
                         return eval_(ast, fn_env);
                     },
+                    is_macro: false,
                     [logger.custom]: () =>
                         logger.inspect({ params, env: '..elided..', ast }),
                 });

@@ -22,7 +22,7 @@ export function read_str(input: string): MalType | null {
     }
 
     const result = read_form(reader);
-    logger('read_str("%s") // => %s', input, result);
+    // logger('read_str("%s") // => %s', input, result);
     return result;
 }
 
@@ -42,7 +42,7 @@ function tokenize(input: string): Token[] {
         tokens.push(result[1]);
     }
 
-    logger('tokenize("%s") // => %s', input, tokens);
+    // logger('tokenize("%s") // => %s', input, tokens);
     return tokens;
 }
 

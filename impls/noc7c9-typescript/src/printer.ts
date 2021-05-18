@@ -2,8 +2,7 @@ import logger from './logger';
 import { MalType } from './types';
 
 export function print_str(input: MalType, print_readably: boolean): string {
-    logger('print_str(%s)', input);
-
+    // logger('print_str(%s)', input);
     switch (input.type) {
         case 'nil':
             return 'nil';
@@ -33,9 +32,20 @@ export function print_str(input: MalType, print_readably: boolean): string {
                 .map((v) => print_str(v, print_readably))
                 .join(' ')}]`;
         case 'fn':
-            if ('name' in input.value && input.value.name) {
-                return `#<function ${input.value.name}>`;
+            if (typeof input.value === 'function') {
+                if ('name' in input.value && input.value.name) {
+                    return `#<builtin ${input.value.name}>`;
+                }
+                return `#<builtin>`;
+            } else {
+                const name = input.value.name || '_';
+                const params = print_str(input.value.params, print_readably);
+                const body = print_str(input.value.ast, print_readably);
+                if (input.value.is_macro) {
+                    return `(defmacro! ${name} (fn* ${params} ${body}))`;
+                } else {
+                    return `(def! ${name} (fn* ${params} ${body}))`;
+                }
             }
-            return `#<function>`;
     }
 }
