@@ -1,4 +1,4 @@
-import type { MalType, MalFn, MalList, MalSym } from './types';
+import type { MalType, MalFn, MalList, MalSym, MalMap } from './types';
 import * as t from './types';
 import logger from './logger';
 import * as readline from './readline';
@@ -22,11 +22,13 @@ function eval_ast(ast: MalType, env: envM.Env): MalType {
                 type: ast.type,
                 value: ast.value.map((value) => eval_(value, env)),
             };
-        case 'map':
-            return {
-                type: 'map',
-                value: ast.value.map(([key, val]) => [key, eval_(val, env)]),
-            };
+        case 'map': {
+            const value: MalMap['value'] = {};
+            Object.entries(ast.value).forEach(([key, val]) => {
+                value[key] = eval_(val, env);
+            });
+            return { type: 'map', value };
+        }
         default:
             return ast;
     }

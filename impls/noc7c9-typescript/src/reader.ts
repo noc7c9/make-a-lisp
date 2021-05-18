@@ -1,5 +1,5 @@
 import logger from './logger';
-import { MalType, MalMap } from './types';
+import * as t from './types';
 
 type Token = string;
 
@@ -8,7 +8,7 @@ type Reader = {
     next: () => Token | null;
 };
 
-export function read_str(input: string): MalType | null {
+export function read_str(input: string): t.MalType | null {
     // logger('read_str("%s")', input);
     const tokens = tokenize(input);
     let pos = 0;
@@ -46,7 +46,7 @@ function tokenize(input: string): Token[] {
     return tokens;
 }
 
-function read_form(reader: Reader): MalType {
+function read_form(reader: Reader): t.MalType {
     // logger('read_form', reader.peek());
     switch (reader.peek()) {
         case null:
@@ -66,8 +66,8 @@ function read_list(
     reader: Reader,
     type: 'list' | 'map' | 'vec',
     end: string,
-): MalType {
-    const list: MalType[] = [];
+): t.MalType {
+    const list: t.MalType[] = [];
     reader.next();
     for (;;) {
         const token = reader.peek();
@@ -85,43 +85,33 @@ function read_list(
         return { type, value: list };
     }
 
-    const map: MalMap['value'] = [];
-    for (let i = 0; i < list.length; i += 2) {
-        const key = list[i];
-        const val = list[i + 1];
-        if (key.type === 'str' || key.type === 'key') {
-            map.push([key, val]);
-        } else {
-            throw new Error(`Hit non-string/keyword map key \`${key.type}\``);
-        }
-    }
-    return { type, value: map };
+    return t.map(list);
 }
 
-function read_atom(reader: Reader): MalType {
+function read_atom(reader: Reader): t.MalType {
     const token = reader.next();
     if (token == null) {
         throw new Error('Hit EOF, unable to read atom');
     }
 
     if (token === 'nil') {
-        return { type: 'nil', value: null };
+        return t.nil();
     }
 
     if (token === 'true' || token === 'false') {
-        return { type: 'bool', value: token === 'true' };
+        return t.bool(token === 'true');
     }
 
     if (/^(-|\+)?\d+$/.test(token)) {
-        return { type: 'int', value: parseInt(token, 10) };
+        return t.int(parseInt(token, 10));
     }
 
     if (token[0] === ':') {
-        return { type: 'key', value: token };
+        return t.key(token);
     }
 
     if (token[0] === '"') {
-        return { type: 'str', value: parse_str(token) };
+        return t.str(parse_str(token));
     }
 
     if (token.startsWith("'")) return read_wrapped(reader, 'quote');
@@ -133,20 +123,14 @@ function read_atom(reader: Reader): MalType {
     if (token[0] === '^') {
         const meta = read_form(reader);
         const value = read_form(reader);
-        return {
-            type: 'list',
-            value: [{ type: 'sym', value: 'with-meta' }, value, meta],
-        };
+        return t.list(t.sym('with-meta'), value, meta);
     }
 
-    return { type: 'sym', value: token };
+    return t.sym(token);
 }
 
-function read_wrapped(reader: Reader, wrapper: string): MalType {
-    return {
-        type: 'list',
-        value: [{ type: 'sym', value: wrapper }, read_form(reader)],
-    };
+function read_wrapped(reader: Reader, wrapper: string): t.MalType {
+    return t.list(t.sym(wrapper), read_form(reader));
 }
 
 function parse_str(token: string): string {

@@ -22,7 +22,7 @@ export type MalSym = { type: 'sym'; value: string };
 
 export type MalAtom = { type: 'atom'; value: MalType };
 export type MalList = { type: 'list'; value: MalType[] };
-export type MalMap = { type: 'map'; value: [MalKey | MalStr, MalType][] };
+export type MalMap = { type: 'map'; value: Record<string, MalType> };
 export type MalVec = { type: 'vec'; value: MalType[] };
 
 export type FnReg = (...args: MalType[]) => MalType;
@@ -37,6 +37,7 @@ export type FnTco = {
 export type MalFn = { type: 'fn'; value: FnReg | FnTco };
 
 export const sym = (value: string): MalSym => ({ type: 'sym', value });
+export const key = (value: string): MalKey => ({ type: 'key', value });
 export const bool = (value: boolean): MalBool => ({ type: 'bool', value });
 export const int = (value: number): MalInt => ({ type: 'int', value });
 export const str = (value: string): MalStr => ({ type: 'str', value });
@@ -45,6 +46,34 @@ export const atom = (value: MalType): MalAtom => ({ type: 'atom', value });
 export const list = (...value: MalType[]): MalList => ({ type: 'list', value });
 export const vec = (...value: MalType[]): MalVec => ({ type: 'vec', value });
 export const fn = (value: MalFn['value']): MalFn => ({ type: 'fn', value });
+export const map = (value: MalType[] | Record<string, MalType>): MalMap => {
+    if (!Array.isArray(value)) {
+        return { type: 'map', value };
+    }
+    const map: MalMap['value'] = {};
+    if (value.length % 2 === 1) {
+        throw str('Missing last map value');
+    }
+    for (let i = 0; i < value.length; i += 2) {
+        const key = value[i];
+        const val = value[i + 1];
+        map[mal_to_map_key(key)] = val;
+    }
+    return { type: 'map', value: map };
+};
+
+export const mal_to_map_key = (k: MalType): string => {
+    if (k.type !== 'key' && k.type !== 'str') {
+        throw str(`Hit non-string/keyword map key \`${k.type}\``);
+    }
+    return `${k.type}$${k.value}`;
+};
+export const map_key_to_mal = (k: string): MalKey | MalStr => {
+    const value = k.slice(k.indexOf('$') + 1);
+    if (k.startsWith('key$')) return key(value);
+    if (k.startsWith('str$')) return str(value);
+    throw str(`Not a map key ${k}`);
+};
 
 export const isSym = (val: MalType): MalSym => {
     if (val.type === 'sym') return val;
@@ -66,9 +95,18 @@ export const isListOrVec = (val: MalType): MalList | MalVec => {
     if (val.type === 'list' || val.type === 'vec') return val;
     throw new Error(`Expected list or vec, got ${val.type}`);
 };
+export const isMap = (val: MalType): MalMap => {
+    if (val.type === 'map') return val;
+    throw new Error(`Expected map, got ${val.type}`);
+};
 export const isFn = (val: MalType): MalFn => {
     if (val.type === 'fn') return val;
     throw new Error(`Expected fn, got ${val.type}`);
+};
+
+export const toFnReg = (val: MalType): FnReg => {
+    const fn = isFn(val);
+    return typeof fn.value === 'function' ? fn.value : fn.value.fn;
 };
 
 export const toBool = (val: MalType): boolean => {

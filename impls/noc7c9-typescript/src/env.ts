@@ -44,7 +44,7 @@ export function init(
     const get: Env['get'] = (sym) => {
         const result = find(sym);
         if (result == null) {
-            throw new Error(`'${sym.value}' not found`);
+            throw t.str(`'${sym.value}' not found`);
         }
         return result;
     };

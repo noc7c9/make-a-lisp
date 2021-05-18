@@ -33,7 +33,7 @@ function eval_ast(ast: MalType, env: envM.Env): MalType {
             Object.entries(ast.value).forEach(([key, val]) => {
                 value[key] = eval_(val, env);
             });
-            return { type: 'map', value, };
+            return { type: 'map', value };
         }
         default:
             return ast;
@@ -108,11 +108,11 @@ function macroexpand(ast: MalType, env: envM.Env): MalType {
 
 function eval_(ast: MalType, env: envM.Env): MalType {
     for (;;) {
-        // logger(
-        //     'eval\n  AST = %s\n  ENV = %s',
-        //     printer.print_str(ast, true),
-        //     env.log(2),
-        // );
+        logger(
+            'eval\n  AST = %s\n  ENV = %s',
+            printer.print_str(ast, true),
+            env.log(2),
+        );
 
         if (ast.type !== 'list') {
             return eval_ast(ast, env);
@@ -209,6 +209,19 @@ function eval_(ast: MalType, env: envM.Env): MalType {
             }
             case 'macroexpand':
                 return macroexpand(ast.value[1], env);
+            case 'try*': {
+                try {
+                    console.log('TRYING', ast.value[1]);
+                    return eval_(ast.value[1], env);
+                } catch (err) {
+                    console.log('FAIL', err);
+                    if (err instanceof Error) throw err;
+                    const catch_env = envM.init(env);
+                    const catch_ast = t.isListOrVec(ast.value[2]);
+                    catch_env.set(t.isSym(catch_ast.value[1]), err);
+                    return eval_(catch_ast.value[2], catch_env);
+                }
+            }
             default: {
                 const evaled = eval_ast(ast, env) as MalList;
                 const fn = t.isFn(evaled.value[0]);
@@ -308,7 +321,10 @@ function build_repl_env(argv: string[]): envM.Env {
             if (err === REPL_CONTINUE) {
                 continue;
             }
-            console.error('Error:', err.message);
+            if (err instanceof Error) {
+                console.error(err);
+            }
+            console.error('Error:', printer.print_str(err, true));
         }
     }
 

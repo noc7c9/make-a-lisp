@@ -1,7 +1,7 @@
 import logger from './logger';
-import { MalType } from './types';
+import * as t from './types';
 
-export function print_str(input: MalType, print_readably: boolean): string {
+export function print_str(input: t.MalType, print_readably: boolean): string {
     // logger('print_str(%s)', input);
     switch (input.type) {
         case 'nil':
@@ -20,9 +20,9 @@ export function print_str(input: MalType, print_readably: boolean): string {
                 .map((v) => print_str(v, print_readably))
                 .join(' ')})`;
         case 'map':
-            return `{${input.value
+            return `{${Object.entries(input.value)
                 .map(([k, v]) => {
-                    const ks = print_str(k, print_readably);
+                    const ks = print_str(t.map_key_to_mal(k), print_readably);
                     const vs = print_str(v, print_readably);
                     return `${ks} ${vs}`;
                 })
