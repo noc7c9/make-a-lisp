@@ -98,10 +98,11 @@ function eval_(ast: MalType, env: envM.Env): MalType {
                 const params = t.isListOrVec(ast.value[1]);
                 ast = ast.value[2];
                 return t.fn({
+                    type: 'mal',
                     env,
                     params,
                     ast,
-                    fn: (...args) => {
+                    call: (...args) => {
                         const binds = params.value.map(t.isSym);
                         const fn_env = envM.init(env, binds, args);
                         return eval_(ast, fn_env);
@@ -120,8 +121,8 @@ function eval_(ast: MalType, env: envM.Env): MalType {
                 logger('calling %s(%s)', fn.value, stringfiedArgs);
 
                 let result;
-                if (typeof fn.value === 'function') {
-                    result = fn.value(...args);
+                if (fn.value.type === 'native') {
+                    result = fn.value.call(...args);
                     logger(
                         'called  %s(%s) => %s',
                         fn.value,
@@ -151,7 +152,7 @@ function core_env(): envM.Env {
     const env = envM.init(null);
 
     Object.entries(core.ns).forEach(([name, fn]) =>
-        env.set(t.sym(name), t.fn(fn)),
+        env.set(t.sym(name), t.fnNative(name, fn)),
     );
     Object.defineProperty(env, logger.custom, { value: () => 'core.ns' });
 
@@ -168,7 +169,7 @@ function build_env(): envM.Env {
 
     env.set(
         t.sym('eval'),
-        t.fn((arg) => eval_(arg, env)),
+        t.fnNative('eval', (arg) => eval_(arg, env)),
     );
 
     const load_file =

@@ -50,7 +50,7 @@ function read_form(reader: Reader): t.MalType {
     // logger('read_form', reader.peek());
     switch (reader.peek()) {
         case null:
-            throw new Error('Hit EOF, unable to read form');
+            throw t.str('Hit EOF, unable to read form');
         case '(':
             return read_list(reader, 'list', ')');
         case '[':
@@ -72,7 +72,7 @@ function read_list(
     for (;;) {
         const token = reader.peek();
         if (token == null) {
-            throw new Error('Hit EOF, unexpected end of list');
+            throw t.str('Hit EOF, unexpected end of list');
         }
         if (token === end) {
             reader.next();
@@ -91,7 +91,7 @@ function read_list(
 function read_atom(reader: Reader): t.MalType {
     const token = reader.next();
     if (token == null) {
-        throw new Error('Hit EOF, unable to read atom');
+        throw t.str('Hit EOF, unable to read atom');
     }
 
     if (token === 'nil') {
@@ -137,6 +137,6 @@ function parse_str(token: string): string {
     try {
         return JSON.parse(token.replace(/\n/, '\\n'));
     } catch (_) {
-        throw new Error('Hit EOF, unexpected end of string');
+        throw t.str('Hit EOF, unexpected end of string');
     }
 }

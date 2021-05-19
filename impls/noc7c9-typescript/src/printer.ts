@@ -32,8 +32,8 @@ export function print_str(input: t.MalType, print_readably: boolean): string {
                 .map((v) => print_str(v, print_readably))
                 .join(' ')}]`;
         case 'fn':
-            if (typeof input.value === 'function') {
-                if ('name' in input.value && input.value.name) {
+            if (input.value.type === 'native') {
+                if (input.value.name != null) {
                     return `#<builtin ${input.value.name}>`;
                 }
                 return `#<builtin>`;

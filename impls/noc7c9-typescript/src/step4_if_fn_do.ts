@@ -86,7 +86,7 @@ function eval_(ast: MalType, env: envM.Env): MalType {
         }
         case 'fn*': {
             logger('fn*', ast.value.slice(1));
-            return t.fn((...args) => {
+            return t.fnNative('', (...args) => {
                 const binds = t.isListOrVec(ast.value[1]).value.map(t.isSym);
                 const fn_env = envM.init(env, binds, args);
                 return eval_(ast.value[2], fn_env);
@@ -98,7 +98,7 @@ function eval_(ast: MalType, env: envM.Env): MalType {
             const args = evaled.value.slice(1);
             const stringfiedArgs = args.map(logger.inspect).join(', ');
             logger('calling %s(%s)', fn.value, stringfiedArgs);
-            const result = (fn.value as any)(...args);
+            const result = fn.value.call(...args);
             logger('called  %s(%s) => %s', fn.value, stringfiedArgs, result);
             return result;
         }
@@ -115,7 +115,7 @@ function print(ast: MalType): string {
     const DEBUG_bk = process.env.DEBUG;
     process.env.DEBUG = undefined;
     Object.entries(core.ns).forEach(([name, fn]) =>
-        repl_env.set(t.sym(name), t.fn(fn)),
+        repl_env.set(t.sym(name), t.fnNative(name, fn)),
     );
     Object.defineProperty(repl_env, logger.custom, { value: () => 'core.ns' });
 

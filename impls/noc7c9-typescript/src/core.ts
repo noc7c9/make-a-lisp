@@ -1,10 +1,18 @@
 import fs from 'fs';
-import type { MalType, MalList, MalVec, MalMap, FnReg } from './types';
+import type { MalType, MalList, MalVec, MalMap, MalFn } from './types';
 import * as t from './types';
 import * as reader from './reader';
 import * as printer from './printer';
+import * as readline from './readline';
 
-export const ns: Record<string, FnReg> = {
+export const ns: Record<string, MalFn['value']['call']> = {
+    readline: (arg) => {
+        const result = readline.prompt(t.toStr(arg));
+        return result == null ? t.nil() : t.str(result);
+    },
+
+    'time-ms': () => t.int(Date.now()),
+
     throw: (arg) => {
         throw arg;
     },
@@ -53,7 +61,6 @@ export const ns: Record<string, FnReg> = {
     },
 
     list: (...args) => t.list(...args),
-    'list?': (arg) => t.bool(arg.type === 'list'),
     'empty?': (arg) => t.bool(t.isListOrVec(arg).value.length === 0),
     count: (arg) => {
         try {
@@ -83,14 +90,13 @@ export const ns: Record<string, FnReg> = {
 
     apply: (fn, ...args) => {
         args.push(...t.isListOrVec(args.pop()!).value);
-        return t.toFnReg(fn)(...args);
+        return t.toFn(fn)(...args);
     },
     map: (fn, list) => {
-        const fn_reg = t.toFnReg(fn);
-        return t.list(...t.isListOrVec(list).value.map((arg) => fn_reg(arg)));
+        const call = t.toFn(fn);
+        return t.list(...t.isListOrVec(list).value.map((arg) => call(arg)));
     },
 
-    'map?': (arg) => t.bool(arg.type === 'map'),
     'hash-map': (...args) => t.map(args),
     assoc: (map, ...args) => {
         const old_kvs = t.isMap(map).value;
@@ -117,13 +123,31 @@ export const ns: Record<string, FnReg> = {
         ),
     vals: (map) => t.list(...Object.values(t.isMap(map).value)),
 
-    'sequential?': (arg) => t.bool(arg.type === 'list' || arg.type === 'vec'),
-
-    'vector?': (arg) => t.bool(arg.type === 'vec'),
     vector: (...args) => t.vec(...args),
     vec: (arg) => {
         if (arg.type === 'vec') return arg;
         return t.vec(...t.isList(arg).value);
+    },
+
+    conj: (arg, ...elems) => {
+        if (arg.type === 'list') {
+            return t.list(...elems.reverse(), ...arg.value);
+        }
+        if (arg.type === 'vec') {
+            return t.vec(...arg.value, ...elems);
+        }
+        throw t.str(`conj is not supported for ${arg.type}`);
+    },
+    seq: (arg) => {
+        if (arg.type === 'nil') return arg;
+        if (arg.type !== 'list' && arg.type !== 'vec' && arg.type !== 'str') {
+            throw t.str(`seq is not supported for ${arg.type}`);
+        }
+        if (arg.value.length === 0) return t.nil();
+        if (arg.type === 'vec') return t.list(...arg.value);
+        if (arg.type === 'str')
+            return t.list(...arg.value.split('').map(t.str));
+        return arg;
     },
 
     symbol: (arg) => t.sym(t.toStr(arg)),
@@ -132,11 +156,20 @@ export const ns: Record<string, FnReg> = {
         return t.key(':' + t.toStr(arg));
     },
 
+    'string?': (arg) => t.bool(arg.type === 'str'),
+    'number?': (arg) => t.bool(arg.type === 'int'),
+    'list?': (arg) => t.bool(arg.type === 'list'),
+    'map?': (arg) => t.bool(arg.type === 'map'),
+    'sequential?': (arg) => t.bool(arg.type === 'list' || arg.type === 'vec'),
+    'vector?': (arg) => t.bool(arg.type === 'vec'),
     'nil?': (arg) => t.bool(arg.type === 'nil'),
     'symbol?': (arg) => t.bool(arg.type === 'sym'),
     'keyword?': (arg) => t.bool(arg.type === 'key'),
     'true?': (arg) => t.bool(arg.type === 'bool' && arg.value === true),
     'false?': (arg) => t.bool(arg.type === 'bool' && arg.value === false),
+    'atom?': (arg) => t.bool(arg.type === 'atom'),
+    'fn?': (arg) => t.bool(arg.type === 'fn' && !arg.value.is_macro),
+    'macro?': (arg) => t.bool(arg.type === 'fn' && arg.value.is_macro),
 
     'read-string': (arg) => reader.read_str(t.toStr(arg)) ?? t.nil(),
     slurp: (arg) => {
@@ -159,7 +192,6 @@ export const ns: Record<string, FnReg> = {
     },
 
     atom: (arg) => t.atom(arg),
-    'atom?': (arg) => t.bool(arg.type === 'atom'),
     deref: (arg) => t.isAtom(arg).value,
     'reset!': (atom, value) => {
         t.isAtom(atom).value = value;
@@ -170,8 +202,31 @@ export const ns: Record<string, FnReg> = {
         const fn = t.isFn(maybeFn);
 
         const oldVal = atom.value;
-        const newVal = t.toFnReg(fn)(oldVal, ...args);
+        const newVal = t.toFn(fn)(oldVal, ...args);
         atom.value = newVal;
         return newVal;
+    },
+
+    meta: (arg) => {
+        if ('meta' in arg && arg.meta != null) return arg.meta;
+        return t.nil();
+    },
+    'with-meta': (arg, meta) => {
+        switch (arg.type) {
+            case 'nil':
+            case 'bool':
+            case 'int':
+            case 'sym':
+            case 'key':
+            case 'str':
+            case 'atom':
+                throw t.str(`Cannot attach meta-data to ${arg.type}`);
+
+            case 'list':
+            case 'map':
+            case 'vec':
+            case 'fn':
+                return { ...arg, meta };
+        }
     },
 };

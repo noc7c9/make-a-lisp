@@ -69,7 +69,7 @@ function eval_(ast: MalType, env: envM.Env): MalType {
             const args = evaled.value.slice(1);
             const stringfiedArgs = args.map(logger.inspect).join(', ');
             logger('calling %s(%s)', fn.value, stringfiedArgs);
-            const result = (fn.value as any)(...args);
+            const result = fn.value.call(...args);
             logger('calling %s(%s) => %s', fn.value, stringfiedArgs, result);
             return result;
         }
@@ -81,8 +81,8 @@ function print(ast: MalType): string {
 }
 
 const repl_env = envM.init(null);
-const setFn = (name: string, fn: MalFn['value']) =>
-    repl_env.set(t.sym(name), t.fn(fn));
+const setFn = (name: string, fn: MalFn['value']['call']) =>
+    repl_env.set(t.sym(name), t.fnNative(name, fn));
 
 setFn('+', (a, b) => t.int(t.toInt(a) + t.toInt(b)));
 setFn('-', (a, b) => t.int(t.toInt(a) - t.toInt(b)));
@@ -102,9 +102,10 @@ setFn('/', (a, b) => t.int(Math.floor(t.toInt(a) / t.toInt(b))));
             console.log(line);
         } catch (err) {
             if (err instanceof Error) {
-                console.error('Error:', err.message);
+                console.error(err);
+            } else {
+                console.error('Error:', printer.print_str(err, true));
             }
-            console.error('Error:', printer.print_str(err, true));
         }
     }
 })();

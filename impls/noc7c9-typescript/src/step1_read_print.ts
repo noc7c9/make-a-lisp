@@ -27,7 +27,11 @@ function print(ast: MalType): string {
             line = print(line);
             console.log(line);
         } catch (err) {
-            console.error('Error:', err.message);
+            if (err instanceof Error) {
+                console.error(err);
+            } else {
+                console.error('Error:', printer.print_str(err, true));
+            }
         }
     }
 })();

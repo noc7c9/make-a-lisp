@@ -21,20 +21,33 @@ export type MalKey = { type: 'key'; value: string };
 export type MalSym = { type: 'sym'; value: string };
 
 export type MalAtom = { type: 'atom'; value: MalType };
-export type MalList = { type: 'list'; value: MalType[] };
-export type MalMap = { type: 'map'; value: Record<string, MalType> };
-export type MalVec = { type: 'vec'; value: MalType[] };
+export type MalList = { type: 'list'; value: MalType[]; meta?: MalType };
+export type MalVec = { type: 'vec'; value: MalType[]; meta?: MalType };
+export type MalMap = {
+    type: 'map';
+    value: Record<string, MalType>;
+    meta?: MalType;
+};
 
-export type FnReg = (...args: MalType[]) => MalType;
-export type FnTco = {
+type Fn = (...args: MalType[]) => MalType;
+export type FnNative = {
+    type: 'native';
+    call: Fn;
+    is_macro: false;
+    name?: string;
+    meta?: MalType;
+};
+export type FnMal = {
+    type: 'mal';
     ast: MalType;
     env: Env;
     params: MalList | MalVec;
-    fn: FnReg;
     is_macro: boolean;
+    call: Fn;
     name?: string;
+    meta?: MalType;
 };
-export type MalFn = { type: 'fn'; value: FnReg | FnTco };
+export type MalFn = { type: 'fn'; value: FnNative | FnMal };
 
 export const sym = (value: string): MalSym => ({ type: 'sym', value });
 export const key = (value: string): MalKey => ({ type: 'key', value });
@@ -45,7 +58,6 @@ export const nil = (): MalNil => ({ type: 'nil', value: null });
 export const atom = (value: MalType): MalAtom => ({ type: 'atom', value });
 export const list = (...value: MalType[]): MalList => ({ type: 'list', value });
 export const vec = (...value: MalType[]): MalVec => ({ type: 'vec', value });
-export const fn = (value: MalFn['value']): MalFn => ({ type: 'fn', value });
 export const map = (value: MalType[] | Record<string, MalType>): MalMap => {
     if (!Array.isArray(value)) {
         return { type: 'map', value };
@@ -61,6 +73,17 @@ export const map = (value: MalType[] | Record<string, MalType>): MalMap => {
     }
     return { type: 'map', value: map };
 };
+
+export const fn = (value: MalFn['value']): MalFn => ({ type: 'fn', value });
+export const fnNative = (name: string, call: Fn): MalFn => ({
+    type: 'fn',
+    value: {
+        type: 'native',
+        name,
+        call,
+        is_macro: false,
+    },
+});
 
 export const mal_to_map_key = (k: MalType): string => {
     if (k.type !== 'key' && k.type !== 'str') {
@@ -104,10 +127,7 @@ export const isFn = (val: MalType): MalFn => {
     throw new Error(`Expected fn, got ${val.type}`);
 };
 
-export const toFnReg = (val: MalType): FnReg => {
-    const fn = isFn(val);
-    return typeof fn.value === 'function' ? fn.value : fn.value.fn;
-};
+export const toFn = (val: MalType): Fn => isFn(val).value.call;
 
 export const toBool = (val: MalType): boolean => {
     if (val.type === 'bool') return val.value;

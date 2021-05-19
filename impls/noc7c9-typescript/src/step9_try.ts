@@ -1,4 +1,4 @@
-import type { MalType, MalFn, MalList, MalSym, MalMap, FnTco } from './types';
+import type { MalType, MalFn, MalList, MalSym, MalMap } from './types';
 import * as t from './types';
 import logger from './logger';
 import * as readline from './readline';
@@ -101,7 +101,7 @@ function macroexpand(ast: MalType, env: envM.Env): MalType {
     while (is_macro_call(ast, env)) {
         const macro = t.isFn(env.get(t.isSym(t.isList(ast).value[0]))).value;
         const args = t.isListOrVec(ast).value.slice(1);
-        ast = (macro as FnTco).fn(...args);
+        ast = macro.call(...args);
     }
     return ast;
 }
@@ -140,8 +140,8 @@ function eval_(ast: MalType, env: envM.Env): MalType {
             case 'defmacro!': {
                 const sym = t.isSym(ast.value[1]);
                 const value = t.isFn(eval_(ast.value[2], env));
-                (value.value as FnTco).name = sym.value;
-                (value.value as FnTco).is_macro = true;
+                value.value.name = sym.value;
+                value.value.is_macro = true;
                 env.set(sym, value);
                 return value;
             }
@@ -185,10 +185,11 @@ function eval_(ast: MalType, env: envM.Env): MalType {
                 const params = t.isListOrVec(ast.value[1]);
                 ast = ast.value[2];
                 return t.fn({
+                    type: 'mal',
                     env,
                     params,
                     ast,
-                    fn: (...args) => {
+                    call: (...args) => {
                         const binds = params.value.map(t.isSym);
                         const fn_env = envM.init(env, binds, args);
                         return eval_(ast, fn_env);
@@ -211,12 +212,11 @@ function eval_(ast: MalType, env: envM.Env): MalType {
                 return macroexpand(ast.value[1], env);
             case 'try*': {
                 try {
-                    console.log('TRYING', ast.value[1]);
                     return eval_(ast.value[1], env);
                 } catch (err) {
-                    console.log('FAIL', err);
                     if (err instanceof Error) throw err;
                     const catch_env = envM.init(env);
+                    if (ast.value[2] == null) throw err;
                     const catch_ast = t.isListOrVec(ast.value[2]);
                     catch_env.set(t.isSym(catch_ast.value[1]), err);
                     return eval_(catch_ast.value[2], catch_env);
@@ -231,8 +231,8 @@ function eval_(ast: MalType, env: envM.Env): MalType {
                 // logger('calling %s(%s)', fn.value, stringfiedArgs);
 
                 let result;
-                if (typeof fn.value === 'function') {
-                    result = fn.value(...args);
+                if (fn.value.type === 'native') {
+                    result = fn.value.call(...args);
                     // logger(
                     //     'called  %s(%s) => %s',
                     //     fn.value,
@@ -269,11 +269,11 @@ function build_repl_env(argv: string[]): envM.Env {
     const repl_env = envM.init(core_env);
 
     Object.entries(core.ns).forEach(([name, fn]) =>
-        core_env.set(t.sym(name), t.fn(fn)),
+        core_env.set(t.sym(name), t.fnNative(name, fn)),
     );
     core_env.set(
         t.sym('eval'),
-        t.fn((arg) => eval_(arg, repl_env)),
+        t.fnNative('eval', (arg) => eval_(arg, repl_env)),
     );
 
     eval_(read('(def! not (fn* (a) (if a false true)))')!, core_env);
