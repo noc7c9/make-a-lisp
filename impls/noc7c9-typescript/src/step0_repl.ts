@@ -12,14 +12,15 @@ function print(line: string): string {
     return line;
 }
 
-(async function main() {
-    const rl = readline.initialize('user> ');
-
+(function main() {
+    const prompt = readline.initialize('user> ');
     let line;
-    while ((line = await rl())) {
+    while ((line = prompt()) != null) {
         line = read(line);
         line = eval_(line);
         line = print(line);
         console.log(line);
     }
+
+    process.exit(0);
 })();

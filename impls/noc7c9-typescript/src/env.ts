@@ -1,24 +1,23 @@
-import logger from './logger';
-import type { MalType, MalSym } from './types';
 import * as t from './types';
+import * as logger from './logger';
 import * as printer from './printer';
 
 export type Env = {
-    set(sym: MalSym, val: MalType): void;
-    find(sym: MalSym): MalType | null;
-    get(sym: MalSym): MalType;
+    set(sym: t.MalSym, val: t.MalType): void;
+    find(sym: t.MalSym): t.MalType | null;
+    get(sym: t.MalSym): t.MalType;
     log(indent?: number): string;
 };
 
 export function init(
     outer: Env | null,
-    binds: MalSym[] = [],
-    exprs: MalType[] = [],
+    binds: t.MalSym[] = [],
+    exprs: t.MalType[] = [],
 ): Env {
-    const data: Record<string, MalType> = {};
+    const data: Record<string, t.MalType> = {};
 
     const set: Env['set'] = (sym, val) => {
-        // logger('set(%s, %s)', sym, val);
+        // logger.log('set(%s, %s)', sym, val);
         if (val == null) {
             delete data[sym.value];
         } else {
@@ -32,13 +31,13 @@ export function init(
     const find: Env['find'] = (sym) => {
         if (sym.value in data) {
             const result = data[sym.value];
-            // logger('find(%s) // => %s', sym, result);
+            // logger.log('find(%s) // => %s', sym, result);
             return result;
         }
         if (outer != null) {
             return outer.find(sym);
         }
-        // logger('find(%s) // => null', sym);
+        // logger.log('find(%s) // => null', sym);
         return null;
     };
     const get: Env['get'] = (sym) => {
@@ -54,7 +53,7 @@ export function init(
 
         const lines = ['{'];
         Object.entries(data).forEach(([key, val]) => {
-            lines.push(i(`  ${key}: ${printer.print_str(val, true)},`));
+            lines.push(i(`  ${key}: ${printer.printStr(val, true)},`));
         });
         if (outer != null) {
             lines.push(i(`  outer = ${outer.log(indent + 2)}`));

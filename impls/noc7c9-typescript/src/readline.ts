@@ -8,17 +8,17 @@ const HISTORY_FILE = path.join(process.env.HOME || '.', '.mal-history');
 
 let rl: readline.ReadLine;
 
-export const initialize = (prompt_str: string) => {
+export const initialize = (promptStr: string) => {
     rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout,
         removeHistoryDuplicates: true,
     });
-    return () => prompt(prompt_str);
+    return () => prompt(promptStr);
 
-    // const history_fd = fs.openSync(HISTORY_FILE, 'a+');
+    // const historyFd = fs.openSync(HISTORY_FILE, 'a+');
     // const history = fs
-    //     .readFileSync(history_fd, 'utf8')
+    //     .readFileSync(historyFd, 'utf8')
     //     .trim()
     //     .split('\n')
     //     .reverse();
@@ -30,13 +30,13 @@ export const initialize = (prompt_str: string) => {
     //     removeHistoryDuplicates: true,
     // } as any); // @types/node@15.3.0 doesn't have necessary types
 
-    // let last_line: string | null = history[0] ?? null;
+    // let lastLine: string | null = history[0] ?? null;
     // return (): string | null => {
-    //     const line = prompt(prompt_str);
-    //     if (line != null && line != last_line) {
-    //         fs.appendFileSync(history_fd, line, 'utf8');
-    //         fs.appendFileSync(history_fd, '\n', 'utf8');
-    //         last_line = line;
+    //     const line = prompt(promptStr);
+    //     if (line != null && line != lastLine) {
+    //         fs.appendFileSync(historyFd, line, 'utf8');
+    //         fs.appendFileSync(historyFd, '\n', 'utf8');
+    //         lastLine = line;
     //     }
     //     return line;
     // };

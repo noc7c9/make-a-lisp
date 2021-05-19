@@ -1,37 +1,41 @@
-import { MalType } from './types';
+import * as t from './types';
 import * as readline from './readline';
 import * as reader from './reader';
 import * as printer from './printer';
 
-function read(line: string): MalType | null {
-    return reader.read_str(line);
-}
+const REPL_CONTINUE = Symbol('REPL_CONTINUE');
 
-function eval_(ast: MalType): MalType {
+function read(line: string): t.MalType {
+    const ast = reader.readStr(line);
+    if (ast == null) {
+        throw REPL_CONTINUE;
+    }
     return ast;
 }
 
-function print(ast: MalType): string {
-    return printer.print_str(ast, true);
+function eval_(ast: t.MalType): t.MalType {
+    return ast;
 }
 
-(async function main() {
-    const rl = readline.initialize('user> ');
+function print(ast: t.MalType): string {
+    return printer.printStr(ast, true);
+}
 
+(function main() {
+    const prompt = readline.initialize('user> ');
     let line;
-    while ((line = await rl())) {
+    while ((line = prompt()) != null) {
         try {
             line = read(line);
-            if (line == null) continue;
             line = eval_(line);
             line = print(line);
             console.log(line);
         } catch (err) {
-            if (err instanceof Error) {
-                console.error(err);
-            } else {
-                console.error('Error:', printer.print_str(err, true));
-            }
+            if (err === REPL_CONTINUE) continue;
+            if (err instanceof Error) throw err;
+            console.error('Error:', printer.printStr(err, true));
         }
     }
+
+    process.exit(0);
 })();

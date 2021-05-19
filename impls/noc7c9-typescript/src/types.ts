@@ -1,4 +1,4 @@
-import type { Env } from './env';
+import * as envM from './env';
 
 export type MalType =
     | MalBool
@@ -33,16 +33,16 @@ type Fn = (...args: MalType[]) => MalType;
 export type FnNative = {
     type: 'native';
     call: Fn;
-    is_macro: false;
+    isMacro: false;
     name?: string;
     meta?: MalType;
 };
 export type FnMal = {
     type: 'mal';
     ast: MalType;
-    env: Env;
+    env: envM.Env;
     params: MalList | MalVec;
-    is_macro: boolean;
+    isMacro: boolean;
     call: Fn;
     name?: string;
     meta?: MalType;
@@ -69,7 +69,7 @@ export const map = (value: MalType[] | Record<string, MalType>): MalMap => {
     for (let i = 0; i < value.length; i += 2) {
         const key = value[i];
         const val = value[i + 1];
-        map[mal_to_map_key(key)] = val;
+        map[malToMapKey(key)] = val;
     }
     return { type: 'map', value: map };
 };
@@ -81,17 +81,17 @@ export const fnNative = (name: string, call: Fn): MalFn => ({
         type: 'native',
         name,
         call,
-        is_macro: false,
+        isMacro: false,
     },
 });
 
-export const mal_to_map_key = (k: MalType): string => {
+export const malToMapKey = (k: MalType): string => {
     if (k.type !== 'key' && k.type !== 'str') {
         throw str(`Hit non-string/keyword map key \`${k.type}\``);
     }
     return `${k.type}$${k.value}`;
 };
-export const map_key_to_mal = (k: string): MalKey | MalStr => {
+export const mapKeyToMal = (k: string): MalKey | MalStr => {
     const value = k.slice(k.indexOf('$') + 1);
     if (k.startsWith('key$')) return key(value);
     if (k.startsWith('str$')) return str(value);
@@ -100,44 +100,44 @@ export const map_key_to_mal = (k: string): MalKey | MalStr => {
 
 export const isSym = (val: MalType): MalSym => {
     if (val.type === 'sym') return val;
-    throw new Error(`Expected sym, got ${val.type}`);
+    throw str(`Expected sym, got ${val.type}`);
 };
 export const isAtom = (val: MalType): MalAtom => {
     if (val.type === 'atom') return val;
-    throw new Error(`Expected atom, got ${val.type}`);
+    throw str(`Expected atom, got ${val.type}`);
 };
 export const isList = (val: MalType): MalList => {
     if (val.type === 'list') return val;
-    throw new Error(`Expected list, got ${val.type}`);
+    throw str(`Expected list, got ${val.type}`);
 };
 export const isVec = (val: MalType): MalVec => {
     if (val.type === 'vec') return val;
-    throw new Error(`Expected vec, got ${val.type}`);
+    throw str(`Expected vec, got ${val.type}`);
 };
 export const isListOrVec = (val: MalType): MalList | MalVec => {
     if (val.type === 'list' || val.type === 'vec') return val;
-    throw new Error(`Expected list or vec, got ${val.type}`);
+    throw str(`Expected list or vec, got ${val.type}`);
 };
 export const isMap = (val: MalType): MalMap => {
     if (val.type === 'map') return val;
-    throw new Error(`Expected map, got ${val.type}`);
+    throw str(`Expected map, got ${val.type}`);
 };
 export const isFn = (val: MalType): MalFn => {
     if (val.type === 'fn') return val;
-    throw new Error(`Expected fn, got ${val.type}`);
+    throw str(`Expected fn, got ${val.type}`);
 };
 
 export const toFn = (val: MalType): Fn => isFn(val).value.call;
 
 export const toBool = (val: MalType): boolean => {
     if (val.type === 'bool') return val.value;
-    throw new Error(`Expected bool, got ${val.type}`);
+    throw str(`Expected bool, got ${val.type}`);
 };
 export const toInt = (val: MalType): number => {
     if (val.type === 'int') return val.value;
-    throw new Error(`Expected int, got ${val.type}`);
+    throw str(`Expected int, got ${val.type}`);
 };
 export const toStr = (val: MalType): string => {
     if (val.type === 'str') return val.value;
-    throw new Error(`Expected str, got ${val.type}`);
+    throw str(`Expected str, got ${val.type}`);
 };

@@ -1,8 +1,8 @@
-import logger from './logger';
 import * as t from './types';
+import * as logger from './logger';
 
-export function print_str(input: t.MalType, print_readably: boolean): string {
-    // logger('print_str(%s)', input);
+export function printStr(input: t.MalType, printReadably: boolean): string {
+    // logger.log('printStr(%s)', input);
     switch (input.type) {
         case 'nil':
             return 'nil';
@@ -12,24 +12,24 @@ export function print_str(input: t.MalType, print_readably: boolean): string {
         case 'key':
             return `${input.value}`;
         case 'str':
-            return print_readably ? JSON.stringify(input.value) : input.value;
+            return printReadably ? JSON.stringify(input.value) : input.value;
         case 'atom':
-            return `(atom ${print_str(input.value, print_readably)})`;
+            return `(atom ${printStr(input.value, printReadably)})`;
         case 'list':
             return `(${input.value
-                .map((v) => print_str(v, print_readably))
+                .map((v) => printStr(v, printReadably))
                 .join(' ')})`;
         case 'map':
             return `{${Object.entries(input.value)
                 .map(([k, v]) => {
-                    const ks = print_str(t.map_key_to_mal(k), print_readably);
-                    const vs = print_str(v, print_readably);
+                    const ks = printStr(t.mapKeyToMal(k), printReadably);
+                    const vs = printStr(v, printReadably);
                     return `${ks} ${vs}`;
                 })
                 .join(' ')}}`;
         case 'vec':
             return `[${input.value
-                .map((v) => print_str(v, print_readably))
+                .map((v) => printStr(v, printReadably))
                 .join(' ')}]`;
         case 'fn':
             if (input.value.type === 'native') {
@@ -39,9 +39,9 @@ export function print_str(input: t.MalType, print_readably: boolean): string {
                 return `#<builtin>`;
             } else {
                 const name = input.value.name || '_';
-                const params = print_str(input.value.params, print_readably);
-                const body = print_str(input.value.ast, print_readably);
-                if (input.value.is_macro) {
+                const params = printStr(input.value.params, printReadably);
+                const body = printStr(input.value.ast, printReadably);
+                if (input.value.isMacro) {
                     return `(defmacro! ${name} (fn* ${params} ${body}))`;
                 } else {
                     return `(def! ${name} (fn* ${params} ${body}))`;

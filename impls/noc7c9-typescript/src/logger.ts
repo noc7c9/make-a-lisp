@@ -1,6 +1,6 @@
 import * as util from 'util';
 
-const logger = (...args: unknown[]) => {
+export const log = (...args: unknown[]) => {
     if (process.env.DEBUG !== 'true') {
         return;
     }
@@ -15,9 +15,7 @@ const logger = (...args: unknown[]) => {
 const inspectNonStr = (value: unknown) =>
     typeof value === 'string' ? value : inspect(value);
 
-const inspect = (value: unknown) =>
+export const inspect = (value: unknown) =>
     util.inspect(value, { depth: Infinity, colors: true });
 
-const { custom } = util.inspect;
-
-export default Object.assign(logger, { inspect, custom });
+export const custom = util.inspect.custom;

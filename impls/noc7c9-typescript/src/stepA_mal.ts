@@ -1,6 +1,5 @@
-import type { MalType, MalFn, MalList, MalSym, MalMap } from './types';
 import * as t from './types';
-import logger from './logger';
+import * as logger from './logger';
 import * as readline from './readline';
 import * as reader from './reader';
 import * as printer from './printer';
@@ -9,15 +8,15 @@ import * as core from './core';
 
 const REPL_CONTINUE = Symbol('REPL_CONTINUE');
 
-function read(line: string): MalType {
-    const ast = reader.read_str(line);
+function read(line: string): t.MalType {
+    const ast = reader.readStr(line);
     if (ast == null) {
         throw REPL_CONTINUE;
     }
     return ast;
 }
 
-function eval_ast(ast: MalType, env: envM.Env): MalType {
+function evalAst(ast: t.MalType, env: envM.Env): t.MalType {
     switch (ast.type) {
         case 'sym': {
             return env.get(ast);
@@ -29,7 +28,7 @@ function eval_ast(ast: MalType, env: envM.Env): MalType {
                 value: ast.value.map((value) => eval_(value, env)),
             };
         case 'map': {
-            const value: MalMap['value'] = {};
+            const value: t.MalMap['value'] = {};
             Object.entries(ast.value).forEach(([key, val]) => {
                 value[key] = eval_(val, env);
             });
@@ -40,7 +39,7 @@ function eval_ast(ast: MalType, env: envM.Env): MalType {
     }
 }
 
-function quasiquote(ast: MalType): MalType {
+function quasiquote(ast: t.MalType): t.MalType {
     if (ast.type === 'list') {
         if (ast.value.length === 0) {
             return ast;
@@ -49,7 +48,7 @@ function quasiquote(ast: MalType): MalType {
             return ast.value[1];
         }
 
-        let result: MalList = t.list();
+        let result: t.MalList = t.list();
         for (let i = ast.value.length - 1; i >= 0; i -= 1) {
             const elt = ast.value[i];
             if (
@@ -65,7 +64,7 @@ function quasiquote(ast: MalType): MalType {
     }
 
     if (ast.type === 'vec') {
-        let result: MalList = t.list();
+        let result: t.MalList = t.list();
         for (let i = ast.value.length - 1; i >= 0; i -= 1) {
             const elt = ast.value[i];
             if (
@@ -87,17 +86,17 @@ function quasiquote(ast: MalType): MalType {
     return ast;
 }
 
-function is_macro_call(ast: MalType, env: envM.Env): boolean {
+function isMacroCall(ast: t.MalType, env: envM.Env): boolean {
     if (ast.type !== 'list') return false;
     const first = ast.value[0];
     if (first == null || first.type != 'sym') return false;
     const resolved = env.find(first);
     if (resolved == null || resolved.type !== 'fn') return false;
-    return resolved.value.is_macro;
+    return resolved.value.isMacro;
 }
 
-function macroexpand(ast: MalType, env: envM.Env): MalType {
-    while (is_macro_call(ast, env)) {
+function macroExpand(ast: t.MalType, env: envM.Env): t.MalType {
+    while (isMacroCall(ast, env)) {
         const macro = t.isFn(env.get(t.isSym(t.isList(ast).value[0]))).value;
         const args = t.isListOrVec(ast).value.slice(1);
         ast = macro.call(...args);
@@ -105,22 +104,22 @@ function macroexpand(ast: MalType, env: envM.Env): MalType {
     return ast;
 }
 
-function eval_(ast: MalType, env: envM.Env): MalType {
+function eval_(ast: t.MalType, env: envM.Env): t.MalType {
     for (;;) {
-        logger(
+        logger.log(
             'eval\n  AST = %s\n  ENV = %s',
-            printer.print_str(ast, true),
+            printer.printStr(ast, true),
             env.log(2),
         );
 
         if (ast.type !== 'list') {
-            return eval_ast(ast, env);
+            return evalAst(ast, env);
         }
 
-        ast = macroexpand(ast, env);
+        ast = macroExpand(ast, env);
 
         if (ast.type !== 'list') {
-            return eval_ast(ast, env);
+            return evalAst(ast, env);
         }
         if (ast.value.length === 0) {
             return ast;
@@ -142,28 +141,28 @@ function eval_(ast: MalType, env: envM.Env): MalType {
                 if (fn.value.type === 'native') {
                     throw t.str('Cannot make native function into a macro');
                 }
-                const macro: MalFn = {
+                const macro: t.MalFn = {
                     type: 'fn',
                     value: {
                         ...fn.value,
                         name: sym.value,
-                        is_macro: true,
+                        isMacro: true,
                     },
                 };
                 env.set(sym, macro);
                 return macro;
             }
             case 'let*': {
-                const let_env = envM.init(env);
+                const letEnv = envM.init(env);
                 const bindings = t.isListOrVec(ast.value[1]).value;
                 for (let i = 0; i < bindings.length; i += 2) {
                     const sym = t.isSym(bindings[i]);
-                    const val = eval_(bindings[i + 1], let_env);
-                    let_env.set(sym, val);
+                    const val = eval_(bindings[i + 1], letEnv);
+                    letEnv.set(sym, val);
                 }
                 // TCO
                 ast = ast.value[2];
-                env = let_env;
+                env = letEnv;
                 continue;
             }
             case 'do': {
@@ -199,10 +198,10 @@ function eval_(ast: MalType, env: envM.Env): MalType {
                     ast,
                     call: (...args) => {
                         const binds = params.value.map(t.isSym);
-                        const fn_env = envM.init(env, binds, args);
-                        return eval_(ast, fn_env);
+                        const fnEnv = envM.init(env, binds, args);
+                        return eval_(ast, fnEnv);
                     },
-                    is_macro: false,
+                    isMacro: false,
                     [logger.custom]: () =>
                         logger.inspect({ params, env: '..elided..', ast }),
                 });
@@ -217,24 +216,23 @@ function eval_(ast: MalType, env: envM.Env): MalType {
                 continue;
             }
             case 'macroexpand':
-                return macroexpand(ast.value[1], env);
+                return macroExpand(ast.value[1], env);
             case 'try*': {
                 try {
                     return eval_(ast.value[1], env);
                 } catch (err) {
                     if (err instanceof Error) throw err;
-                    const catch_env = envM.init(env);
+                    const catchEnv = envM.init(env);
                     if (ast.value[2] == null) throw err;
-                    const catch_ast = t.isListOrVec(ast.value[2]);
-                    catch_env.set(t.isSym(catch_ast.value[1]), err);
-                    return eval_(catch_ast.value[2], catch_env);
+                    const catchAst = t.isListOrVec(ast.value[2]);
+                    catchEnv.set(t.isSym(catchAst.value[1]), err);
+                    return eval_(catchAst.value[2], catchEnv);
                 }
             }
             default: {
-                const evaled = eval_ast(ast, env) as MalList;
+                const evaled = evalAst(ast, env) as t.MalList;
                 const fn = t.isFn(evaled.value[0]);
                 const args = evaled.value.slice(1);
-                const stringfiedArgs = args.map(logger.inspect).join(', ');
 
                 let result;
                 if (fn.value.type === 'native') {
@@ -253,82 +251,77 @@ function eval_(ast: MalType, env: envM.Env): MalType {
     }
 }
 
-function print(ast: MalType): string {
-    return printer.print_str(ast, true);
+function print(ast: t.MalType): string {
+    return printer.printStr(ast, true);
 }
 
-function core_env(): envM.Env {
-    const env = envM.init(null);
-
-    return env;
-}
-
-function build_repl_env(argv: string[]): envM.Env {
-    const core_env = envM.init(null);
-    const repl_env = envM.init(core_env);
+function buildReplEnv(argv: string[]): envM.Env {
+    const coreEnv = envM.init(null);
+    const replEnv = envM.init(coreEnv);
 
     Object.entries(core.ns).forEach(([name, fn]) =>
-        core_env.set(t.sym(name), t.fnNative(name, fn)),
+        coreEnv.set(t.sym(name), t.fnNative(name, fn)),
     );
-    core_env.set(
+    coreEnv.set(
         t.sym('eval'),
-        t.fnNative('eval', (arg) => eval_(arg, repl_env)),
+        t.fnNative('eval', (arg) => eval_(arg, replEnv)),
     );
 
-    eval_(read('(def! not (fn* (a) (if a false true)))')!, core_env);
-    const load_file =
+    eval_(read('(def! not (fn* (a) (if a false true)))')!, coreEnv);
+    const loadFile =
         '(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))';
-    eval_(read(load_file)!, core_env);
+    eval_(read(loadFile)!, coreEnv);
     const cond =
         '(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list \'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons \'cond (rest (rest xs)))))))';
-    eval_(read(cond)!, core_env);
+    eval_(read(cond)!, coreEnv);
 
-    core_env.set(t.sym('*ARGV*'), t.list(...argv.slice(1).map(t.str)));
+    coreEnv.set(t.sym('*ARGV*'), t.list(...argv.slice(1).map(t.str)));
 
-    core_env.set(t.sym('*host-language*'), t.str('noc7c9-typescript'));
+    coreEnv.set(t.sym('*host-language*'), t.str('noc7c9-typescript'));
 
     // elide the core env when logging
-    core_env.log = () => 'core.ns';
+    coreEnv.log = () => 'core.ns';
 
-    return repl_env;
+    return replEnv;
 }
 
 (function main() {
     const args = process.argv.slice(2);
 
-    const DEBUG_bk = process.env.DEBUG;
+    const DEBUG_backup = process.env.DEBUG;
     process.env.DEBUG = undefined;
-    const repl_env = build_repl_env(args);
-    process.env.DEBUG = DEBUG_bk;
+    const replEnv = buildReplEnv(args);
+    process.env.DEBUG = DEBUG_backup;
 
     if (args.length > 0) {
-        const input = `(load-file "${args[0]}")`;
-        const read_line = read(input);
-        if (read_line == null) process.exit(0);
-        const eval_line = eval_(read_line, repl_env);
-        print(eval_line);
+        try {
+            const input = `(load-file "${args[0]}")`;
+            const readLine = read(input);
+            const evalLine = eval_(readLine, replEnv);
+            print(evalLine);
+        } catch (err) {
+            if (err !== REPL_CONTINUE) {
+                if (err instanceof Error) throw err;
+                console.error('Error:', printer.printStr(err, true));
+            }
+        }
         process.exit(0);
     }
 
-    eval_(read('(println (str "Mal [" *host-language* "]"))'), repl_env);
+    eval_(read('(println (str "t.Mal [" *host-language* "]"))'), replEnv);
 
     const prompt = readline.initialize('user> ');
     let line;
     while ((line = prompt()) != null) {
         try {
             line = read(line);
-            line = eval_(line, repl_env);
+            line = eval_(line, replEnv);
             line = print(line);
             console.log(line);
         } catch (err) {
-            if (err === REPL_CONTINUE) {
-                continue;
-            }
-            if (err instanceof Error) {
-                console.error(err);
-            } else {
-                console.error('Error:', printer.print_str(err, true));
-            }
+            if (err === REPL_CONTINUE) continue;
+            if (err instanceof Error) throw err;
+            console.error('Error:', printer.printStr(err, true));
         }
     }
 

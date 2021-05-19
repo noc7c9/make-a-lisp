@@ -1,5 +1,5 @@
-import logger from './logger';
 import * as t from './types';
+import * as logger from './logger';
 
 type Token = string;
 
@@ -8,8 +8,8 @@ type Reader = {
     next: () => Token | null;
 };
 
-export function read_str(input: string): t.MalType | null {
-    // logger('read_str("%s")', input);
+export function readStr(input: string): t.MalType | null {
+    // logger.log('readStr("%s")', input);
     const tokens = tokenize(input);
     let pos = 0;
     const reader = {
@@ -21,13 +21,13 @@ export function read_str(input: string): t.MalType | null {
         return null;
     }
 
-    const result = read_form(reader);
-    // logger('read_str("%s") // => %s', input, result);
+    const result = readForm(reader);
+    // logger.log('readStr("%s") // => %s', input, result);
     return result;
 }
 
 function tokenize(input: string): Token[] {
-    // logger('tokenize("%s")', input);
+    // logger.log('tokenize("%s")', input);
     const re = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/g;
 
     const tokens = [];
@@ -42,27 +42,27 @@ function tokenize(input: string): Token[] {
         tokens.push(result[1]);
     }
 
-    // logger('tokenize("%s") // => %s', input, tokens);
+    // logger.log('tokenize("%s") // => %s', input, tokens);
     return tokens;
 }
 
-function read_form(reader: Reader): t.MalType {
-    // logger('read_form', reader.peek());
+function readForm(reader: Reader): t.MalType {
+    // logger.log('readForm', reader.peek());
     switch (reader.peek()) {
         case null:
             throw t.str('Hit EOF, unable to read form');
         case '(':
-            return read_list(reader, 'list', ')');
+            return readList(reader, 'list', ')');
         case '[':
-            return read_list(reader, 'vec', ']');
+            return readList(reader, 'vec', ']');
         case '{':
-            return read_list(reader, 'map', '}');
+            return readList(reader, 'map', '}');
         default:
-            return read_atom(reader);
+            return readAtom(reader);
     }
 }
 
-function read_list(
+function readList(
     reader: Reader,
     type: 'list' | 'map' | 'vec',
     end: string,
@@ -78,7 +78,7 @@ function read_list(
             reader.next();
             break;
         }
-        list.push(read_form(reader));
+        list.push(readForm(reader));
     }
 
     if (type === 'list' || type === 'vec') {
@@ -88,7 +88,7 @@ function read_list(
     return t.map(list);
 }
 
-function read_atom(reader: Reader): t.MalType {
+function readAtom(reader: Reader): t.MalType {
     const token = reader.next();
     if (token == null) {
         throw t.str('Hit EOF, unable to read atom');
@@ -111,29 +111,29 @@ function read_atom(reader: Reader): t.MalType {
     }
 
     if (token[0] === '"') {
-        return t.str(parse_str(token));
+        return t.str(parseStr(token));
     }
 
-    if (token.startsWith("'")) return read_wrapped(reader, 'quote');
-    if (token.startsWith('`')) return read_wrapped(reader, 'quasiquote');
-    if (token.startsWith('~@')) return read_wrapped(reader, 'splice-unquote');
-    if (token.startsWith('~')) return read_wrapped(reader, 'unquote');
-    if (token.startsWith('@')) return read_wrapped(reader, 'deref');
+    if (token.startsWith("'")) return readWrapped(reader, 'quote');
+    if (token.startsWith('`')) return readWrapped(reader, 'quasiquote');
+    if (token.startsWith('~@')) return readWrapped(reader, 'splice-unquote');
+    if (token.startsWith('~')) return readWrapped(reader, 'unquote');
+    if (token.startsWith('@')) return readWrapped(reader, 'deref');
 
     if (token[0] === '^') {
-        const meta = read_form(reader);
-        const value = read_form(reader);
+        const meta = readForm(reader);
+        const value = readForm(reader);
         return t.list(t.sym('with-meta'), value, meta);
     }
 
     return t.sym(token);
 }
 
-function read_wrapped(reader: Reader, wrapper: string): t.MalType {
-    return t.list(t.sym(wrapper), read_form(reader));
+function readWrapped(reader: Reader, wrapper: string): t.MalType {
+    return t.list(t.sym(wrapper), readForm(reader));
 }
 
-function parse_str(token: string): string {
+function parseStr(token: string): string {
     try {
         return JSON.parse(token.replace(/\n/, '\\n'));
     } catch (_) {

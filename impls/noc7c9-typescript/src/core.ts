@@ -1,11 +1,11 @@
 import fs from 'fs';
-import type { MalType, MalList, MalVec, MalMap, MalFn } from './types';
+
 import * as t from './types';
 import * as reader from './reader';
 import * as printer from './printer';
 import * as readline from './readline';
 
-export const ns: Record<string, MalFn['value']['call']> = {
+export const ns: Record<string, t.MalFn['value']['call']> = {
     readline: (arg) => {
         const result = readline.prompt(t.toStr(arg));
         return result == null ? t.nil() : t.str(result);
@@ -36,10 +36,10 @@ export const ns: Record<string, MalFn['value']['call']> = {
         if (a.type === 'map' && b.type === 'map') {
             const a_ = a.value;
             const b_ = b.value;
-            const a_keys = Object.keys(a_);
-            const b_keys = Object.keys(b_);
-            if (a_keys.length !== b_keys.length) return t.bool(false);
-            return t.bool(a_keys.every((k) => ns['='](a_[k], b_[k]).value));
+            const aKeys = Object.keys(a_);
+            const bKeys = Object.keys(b_);
+            if (aKeys.length !== bKeys.length) return t.bool(false);
+            return t.bool(aKeys.every((k) => ns['='](a_[k], b_[k]).value));
         }
 
         if (a.type !== b.type) return t.bool(false);
@@ -53,7 +53,7 @@ export const ns: Record<string, MalFn['value']['call']> = {
 
     cons: (elem, list) => t.list(elem, ...t.isListOrVec(list).value),
     concat: (...args) => {
-        const concatted: MalType[] = [];
+        const concatted: t.MalType[] = [];
         for (let i = 0; i < args.length; i += 1) {
             concatted.push(...t.isListOrVec(args[i]).value);
         }
@@ -99,28 +99,25 @@ export const ns: Record<string, MalFn['value']['call']> = {
 
     'hash-map': (...args) => t.map(args),
     assoc: (map, ...args) => {
-        const old_kvs = t.isMap(map).value;
-        const new_kvs = t.map(args).value;
-        return t.map(Object.assign({}, old_kvs, new_kvs));
+        const oldMap = t.isMap(map).value;
+        const newMap = t.map(args).value;
+        return t.map(Object.assign({}, oldMap, newMap));
     },
     dissoc: (map, ...args) => {
         const clone = { ...t.isMap(map).value };
         for (let i = 0; i < args.length; i += 1) {
-            const map_key = t.mal_to_map_key(args[i]);
-            delete clone[map_key];
+            const mapKey = t.malToMapKey(args[i]);
+            delete clone[mapKey];
         }
         return t.map(clone);
     },
     get: (map, key) => {
         if (map.type === 'nil') return t.nil();
-        return t.isMap(map).value[t.mal_to_map_key(key)] || t.nil();
+        return t.isMap(map).value[t.malToMapKey(key)] || t.nil();
     },
-    'contains?': (map, key) =>
-        t.bool(t.mal_to_map_key(key) in t.isMap(map).value),
+    'contains?': (map, key) => t.bool(t.malToMapKey(key) in t.isMap(map).value),
     keys: (map) =>
-        t.list(
-            ...Object.keys(t.isMap(map).value).map((k) => t.map_key_to_mal(k)),
-        ),
+        t.list(...Object.keys(t.isMap(map).value).map((k) => t.mapKeyToMal(k))),
     vals: (map) => t.list(...Object.values(t.isMap(map).value)),
 
     vector: (...args) => t.vec(...args),
@@ -168,10 +165,10 @@ export const ns: Record<string, MalFn['value']['call']> = {
     'true?': (arg) => t.bool(arg.type === 'bool' && arg.value === true),
     'false?': (arg) => t.bool(arg.type === 'bool' && arg.value === false),
     'atom?': (arg) => t.bool(arg.type === 'atom'),
-    'fn?': (arg) => t.bool(arg.type === 'fn' && !arg.value.is_macro),
-    'macro?': (arg) => t.bool(arg.type === 'fn' && arg.value.is_macro),
+    'fn?': (arg) => t.bool(arg.type === 'fn' && !arg.value.isMacro),
+    'macro?': (arg) => t.bool(arg.type === 'fn' && arg.value.isMacro),
 
-    'read-string': (arg) => reader.read_str(t.toStr(arg)) ?? t.nil(),
+    'read-string': (arg) => reader.readStr(t.toStr(arg)) ?? t.nil(),
     slurp: (arg) => {
         const filepath = t.toStr(arg);
         const content = fs.readFileSync(filepath, 'utf8');
@@ -179,15 +176,15 @@ export const ns: Record<string, MalFn['value']['call']> = {
     },
 
     'pr-str': (...args) =>
-        t.str(args.map((a) => printer.print_str(a, true)).join(' ')),
+        t.str(args.map((a) => printer.printStr(a, true)).join(' ')),
     str: (...args) =>
-        t.str(args.map((a) => printer.print_str(a, false)).join('')),
+        t.str(args.map((a) => printer.printStr(a, false)).join('')),
     prn: (...args) => {
-        console.log(args.map((a) => printer.print_str(a, true)).join(' '));
+        console.log(args.map((a) => printer.printStr(a, true)).join(' '));
         return t.nil();
     },
     println: (...args) => {
-        console.log(args.map((a) => printer.print_str(a, false)).join(' '));
+        console.log(args.map((a) => printer.printStr(a, false)).join(' '));
         return t.nil();
     },
 
