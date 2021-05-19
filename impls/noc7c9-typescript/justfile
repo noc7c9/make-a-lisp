@@ -10,6 +10,8 @@ test STEP:
     cd ../.. && make test^noc7c9-typescript^step{{STEP}} | rg -e "^" -e FAIL
 test-all:
     cd ../.. && make test^noc7c9-typescript | rg -e "^" -e FAIL
+test-self-host:
+    cd ../.. && make MAL_IMPL=noc7c9-typescript test^mal | rg -e "^" -e FAIL
 
 watch +CMD:
     watchexec -w . -r "cls; just {{CMD}}"
